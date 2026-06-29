@@ -506,6 +506,50 @@
   </div>
 </div>
 
+<!-- VIEW LIBRARY ITEM MODAL -->
+<div class="modal-overlay" id="viewModal">
+  <div class="modal" style="width:700px;max-width:95vw">
+    <div class="modal-title">
+      <span id="vm-title">Material</span>
+      <button class="modal-close" onclick="closeModal('viewModal')">✕</button>
+    </div>
+    <div id="vm-img-wrap" style="display:none;margin-bottom:16px;text-align:center">
+      <img id="vm-img" src="" style="max-width:100%;max-height:420px;border-radius:10px;border:1px solid var(--border)">
+    </div>
+    <div id="vm-file-wrap" style="display:none;margin-bottom:16px">
+      <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:32px">📎</span>
+        <div>
+          <div id="vm-fname" style="font-weight:600"></div>
+          <div class="text-muted text-sm">Fayl yuklangan</div>
+        </div>
+        <button class="btn btn-primary" style="margin-left:auto;padding:7px 14px" onclick="downloadFile()">⬇️ Yuklab olish</button>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:14px;gap:10px">
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+        <div class="text-muted text-sm">Kategoriya</div>
+        <div id="vm-cat" class="fw-700 mt-4" style="font-size:18px"></div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px">
+        <div class="text-muted text-sm">Sana</div>
+        <div id="vm-date" class="fw-700 mt-4"></div>
+      </div>
+    </div>
+    <div id="vm-desc-wrap" style="margin-bottom:14px">
+      <div class="form-label">Tavsif</div>
+      <div id="vm-desc" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:12px;line-height:1.6;font-size:13.5px"></div>
+    </div>
+    <div id="vm-tags-wrap">
+      <div class="lib-tags" id="vm-tags"></div>
+    </div>
+    <div class="flex-between mt-16">
+      <button class="btn btn-danger" onclick="deleteCurrentLib()">🗑️ O'chirish</button>
+      <button class="btn btn-outline" onclick="closeModal('viewModal')">Yopish</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD LIBRARY MODAL -->
 <div class="modal-overlay" id="libModal">
   <div class="modal">
@@ -1041,11 +1085,13 @@ let strategies = JSON.parse(localStorage.getItem('tp-strategies') || JSON.string
 let libFiles = {};
 
 // ─── INIT ───
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   updateUser();
   updateLiveTime();
   setInterval(updateLiveTime, 1000);
   buildTicker();
+  await openDB();
+  await loadAllIDBCache();
   renderDashboard();
   renderJournal();
   renderLibrary();
@@ -1246,39 +1292,48 @@ function filterLib(f,el) {
 }
 function previewFile(input) {
   if(!input.files[0]) return;
-  const name = input.files[0].name;
+  const file = input.files[0];
+  const name = file.name;
+  const mime = file.type;
   const el = document.getElementById('lib-file-preview');
-  const isImg = input.files[0].type.startsWith('image/');
-  if(isImg) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      libFiles['pending'] = {data:e.target.result, name, type:'image'};
-      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:8px">`;
-    };
-    reader.readAsDataURL(input.files[0]);
-  } else {
-    libFiles['pending'] = {name, type:'file'};
-    el.textContent = '📎 '+name;
-  }
+  const isImg = mime.startsWith('image/');
+  const reader = new FileReader();
+  reader.onload = e => {
+    libFiles['pending'] = {data: e.target.result, name, type: isImg?'image':'file', mime};
+    if(isImg) {
+      el.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:8px;margin-bottom:6px"><br><span style="font-size:12px;color:var(--green)">✅ ${name}</span>`;
+    } else {
+      el.innerHTML = `<div style="font-size:28px">📎</div><div style="font-size:12px;color:var(--green);margin-top:4px">✅ ${name}</div>`;
+    }
+  };
+  reader.readAsDataURL(file);
 }
-function saveLib() {
+async function saveLib() {
   const title = document.getElementById('lib-title').value.trim();
   if(!title) return alert('Sarlavha kiriting!');
+  const id = Date.now();
+  const pending = libFiles['pending'];
+  // Store meta WITHOUT the raw data in localStorage (to avoid 5MB limit)
   const item = {
-    id: Date.now(),
+    id,
     title,
     cat: document.getElementById('lib-cat').value,
     desc: document.getElementById('lib-desc').value,
     tags: document.getElementById('lib-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
     date: new Date().toLocaleDateString('uz-UZ'),
-    file: libFiles['pending'] || null
+    file: pending ? {name: pending.name, type: pending.type, mime: pending.mime} : null
   };
+  // Save file data separately in IndexedDB
+  if(pending && pending.data) {
+    idbCache[id] = pending.data;
+    await saveFileIDB(id, pending.data);
+  }
   library.unshift(item);
   localStorage.setItem('tp-library', JSON.stringify(library));
   libFiles['pending'] = null;
   closeModal('libModal');
-  ['lib-title','lib-desc','lib-tags'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('lib-file-preview').textContent = '🖼️';
+  ['lib-title','lib-desc','lib-tags'].forEach(id2=>document.getElementById(id2).value='');
+  document.getElementById('lib-file-preview').innerHTML = '🖼️';
   document.getElementById('trade-badge').textContent = trades.length;
   document.getElementById('lib-badge').textContent = library.length;
   setEl('lib-count-dash', library.length);
@@ -1293,20 +1348,131 @@ function renderLibrary() {
     return;
   }
   grid.innerHTML = data.map(i=>{
-    let thumb = `<div class="lib-thumb"><span style="z-index:1">${i.cat}</span><div class="lib-type">${i.date}</div></div>`;
-    if(i.file && i.file.type==='image') {
-      thumb = `<div class="lib-thumb"><img src="${i.file.data}"><div class="lib-type">${i.date}</div></div>`;
+    // Thumbnail: use stored imageData from idbCache if available
+    const imgSrc = idbCache[i.id] || (i.file && i.file.data) || '';
+    let thumb = `<div class="lib-thumb"><span style="z-index:1;font-size:36px">${i.cat}</span><div class="lib-type">${i.date}</div></div>`;
+    if(imgSrc) {
+      thumb = `<div class="lib-thumb"><img src="${imgSrc}" style="width:100%;height:100%;object-fit:cover;position:absolute"><div class="lib-type">${i.date}</div></div>`;
     }
-    return `<div class="lib-card">
+    const hasFile = i.file && i.file.name;
+    return `<div class="lib-card" onclick="openLibItem(${i.id})" style="cursor:pointer">
       ${thumb}
       <div class="lib-body">
         <div class="lib-title">${i.title}</div>
-        <div class="lib-meta">${i.desc||'—'}</div>
-        ${i.file?`<div class="text-sm text-muted mt-4">📎 ${i.file.name}</div>`:''}
+        <div class="lib-meta" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${i.desc||'—'}</div>
+        ${hasFile?`<div class="text-sm mt-4" style="color:var(--green)">📎 ${i.file.name}</div>`:''}
         <div class="lib-tags">${(i.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('')}</div>
       </div>
     </div>`;
   }).join('');
+}
+
+// ─── INDEXEDDB for images/files ───
+let db; let idbCache = {};
+function openDB() {
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open('traderpro-files',1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('files',{keyPath:'id'});
+    req.onsuccess = e => { db=e.target.result; res(db); };
+    req.onerror = rej;
+  });
+}
+async function saveFileIDB(id, data) {
+  if(!db) await openDB();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('files','readwrite');
+    tx.objectStore('files').put({id, data});
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function getFileIDB(id) {
+  if(!db) await openDB();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('files','readonly');
+    const req = tx.objectStore('files').get(id);
+    req.onsuccess = e => res(e.target.result?.data || null);
+    req.onerror = rej;
+  });
+}
+async function deleteFileIDB(id) {
+  if(!db) await openDB();
+  return new Promise((res,rej)=>{
+    const tx = db.transaction('files','readwrite');
+    tx.objectStore('files').delete(id);
+    tx.oncomplete = res; tx.onerror = rej;
+  });
+}
+async function loadAllIDBCache() {
+  if(!db) await openDB();
+  return new Promise((res)=>{
+    const tx = db.transaction('files','readonly');
+    const req = tx.objectStore('files').getAll();
+    req.onsuccess = e => {
+      idbCache = {};
+      (e.target.result||[]).forEach(r=>idbCache[r.id]=r.data);
+      res();
+    };
+    req.onerror = ()=>res();
+  });
+}
+
+// ─── VIEW LIB ITEM ───
+let currentLibId = null;
+async function openLibItem(id) {
+  const item = library.find(i=>i.id===id);
+  if(!item) return;
+  currentLibId = id;
+  document.getElementById('vm-title').textContent = item.title;
+  document.getElementById('vm-cat').textContent = item.cat;
+  document.getElementById('vm-date').textContent = item.date;
+  document.getElementById('vm-desc').textContent = item.desc || '—';
+  document.getElementById('vm-tags').innerHTML = (item.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('');
+
+  // Image
+  const imgWrap = document.getElementById('vm-img-wrap');
+  const fileWrap = document.getElementById('vm-file-wrap');
+  imgWrap.style.display = 'none';
+  fileWrap.style.display = 'none';
+
+  if(item.file) {
+    // Try to get from IndexedDB first
+    let fileData = idbCache[id] || await getFileIDB(id);
+    if(!fileData && item.file.data) fileData = item.file.data; // fallback
+
+    if(item.file.type === 'image' && fileData) {
+      document.getElementById('vm-img').src = fileData;
+      imgWrap.style.display = 'block';
+    } else if(item.file.name) {
+      document.getElementById('vm-fname').textContent = item.file.name;
+      fileWrap.style.display = 'block';
+      // Store data ref for download
+      window._currentFileData = fileData;
+      window._currentFileName = item.file.name;
+      window._currentFileMime = item.file.mime || 'application/octet-stream';
+    }
+  }
+  openModal('viewModal');
+}
+
+function downloadFile() {
+  if(!window._currentFileData) return alert('Fayl ma\'lumoti topilmadi');
+  const a = document.createElement('a');
+  a.href = window._currentFileData;
+  a.download = window._currentFileName || 'file';
+  a.click();
+}
+
+function deleteCurrentLib() {
+  if(!currentLibId) return;
+  if(!confirm('Bu materialni o\'chirasizmi?')) return;
+  library = library.filter(i=>i.id!==currentLibId);
+  localStorage.setItem('tp-library', JSON.stringify(library));
+  deleteFileIDB(currentLibId);
+  delete idbCache[currentLibId];
+  document.getElementById('lib-badge').textContent = library.length;
+  setEl('lib-count-dash', library.length);
+  closeModal('viewModal');
+  renderLibrary();
 }
 
 // ─── STRATEGIES ───
