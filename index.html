@@ -31,6 +31,17 @@
     --radius-sm: 8px;
     --shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
+  body.light-mode {
+    --bg-deep: #F9FAFB;
+    --bg-main: #FFFFFF;
+    --bg-card: #F3F4F6;
+    --bg-card2: #E5E7EB;
+    --border: rgba(0,0,0,0.08);
+    --border-bright: rgba(0,212,170,0.3);
+    --text: #111827;
+    --text-muted: #6B7280;
+    --text-dim: #374151;
+  }
 
   * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -206,6 +217,7 @@
 
   /* ─── GRID ─── */
   .grid-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .grid-5 { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
   .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
   .grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
   .grid-21 { display:grid; grid-template-columns:2fr 1fr; gap:16px; }
@@ -440,6 +452,20 @@
   .text-sm    { font-size:12px; }
   .fw-700     { font-weight:700; }
   .divider    { height:1px; background:var(--border); margin:16px 0; }
+
+  /* ─── TOAST NOTIFICATIONS ─── */
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--bg-card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 20px; color:var(--text); z-index:2000;
+    animation: slideInUp .3s ease; box-shadow: var(--shadow); max-width:400px; }
+  .toast.success { border-left:4px solid var(--green); background:rgba(0,212,170,0.08); }
+  .toast.error { border-left:4px solid var(--red); background:rgba(255,71,87,0.08); }
+  .toast.warning { border-left:4px solid var(--gold); background:rgba(201,168,76,0.08); }
+  @keyframes slideInUp { from { transform:translateY(100px); opacity:0; } to { transform:none; opacity:1; } }
+
+  /* ─── MODE TOGGLE ─── */
+  .mode-toggle { background:none; border:1px solid var(--border); color:var(--text-dim); width:36px; height:36px;
+    border-radius:50%; cursor:pointer; font-size:16px; transition:.2s; display:flex; align-items:center; justify-content:center; }
+  .mode-toggle:hover { background:rgba(255,255,255,0.07); color:var(--text); }
 </style>
 </head>
 <body>
@@ -485,15 +511,28 @@
         <input class="form-input" id="m-pnl" type="number" placeholder="+120.50">
       </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Strategiya</label>
-      <select class="form-select" id="m-strat">
-        <option>Trend Following</option>
-        <option>Support & Resistance</option>
-        <option>Breakout</option>
-        <option>Scalping</option>
-        <option>Boshqa</option>
-      </select>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">Strategiya</label>
+        <select class="form-select" id="m-strat">
+          <option>Trend Following</option>
+          <option>Support & Resistance</option>
+          <option>Breakout</option>
+          <option>Scalping</option>
+          <option>Boshqa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hissiyot</label>
+        <select class="form-select" id="m-emotion">
+          <option value="calm">😌 Xotirjam</option>
+          <option value="confident">💪 Ishonchli</option>
+          <option value="fomo">⚡ FOMO</option>
+          <option value="fear">😟 Qo'rquv</option>
+          <option value="greed">🤑 Ochko'zlik</option>
+          <option value="revenge">😤 Qasos (revenge)</option>
+        </select>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">Izoh</label>
@@ -546,6 +585,89 @@
     <div class="flex-between mt-16">
       <button class="btn btn-danger" onclick="deleteCurrentLib()">🗑️ O'chirish</button>
       <button class="btn btn-outline" onclick="closeModal('viewModal')">Yopish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD/EDIT STRATEGY MODAL -->
+<div class="modal-overlay" id="stratModal">
+  <div class="modal" style="width:560px">
+    <div class="modal-title">
+      <span id="strat-modal-title">⚡ Yangi Strategiya</span>
+      <button class="modal-close" onclick="closeModal('stratModal')">✕</button>
+    </div>
+    <div class="grid-2">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Strategiya Nomi</label>
+        <input class="form-input" id="st-name" placeholder="Masalan: EMA Crossover">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Turi</label>
+        <select class="form-select" id="st-type">
+          <option value="trend">📈 Trend</option>
+          <option value="scalping">⚡ Scalping</option>
+          <option value="swing">🔄 Swing</option>
+          <option value="reversal">↩️ Reversal</option>
+          <option value="breakout">💥 Breakout</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Risk/Reward (masalan: 1:2)</label>
+        <input class="form-input" id="st-rr" placeholder="1:2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Win Rate (%)</label>
+        <input class="form-input" id="st-win" type="number" placeholder="60" min="0" max="100">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teglar (vergul bilan)</label>
+        <input class="form-input" id="st-tags" placeholder="EMA, trend, H4">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Tavsif / Qoidalar</label>
+        <textarea class="form-textarea" id="st-desc" placeholder="Bu strategiyaning kirish/chiqish shartlari..."></textarea>
+      </div>
+    </div>
+    <div class="flex-between mt-16">
+      <button class="btn btn-outline" onclick="closeModal('stratModal')">Bekor</button>
+      <button class="btn btn-primary" onclick="saveStrategy()">💾 Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW STRATEGY MODAL -->
+<div class="modal-overlay" id="stratViewModal">
+  <div class="modal" style="width:580px">
+    <div class="modal-title">
+      <span id="sv-name">Strategiya</span>
+      <button class="modal-close" onclick="closeModal('stratViewModal')">✕</button>
+    </div>
+    <div class="grid-3" style="margin-bottom:16px;gap:10px">
+      <div style="background:rgba(0,212,170,0.07);border:1px solid rgba(0,212,170,0.2);border-radius:10px;padding:14px;text-align:center">
+        <div class="stat-value text-green" id="sv-win" style="font-size:22px">0%</div>
+        <div class="text-muted text-sm">Win Rate</div>
+      </div>
+      <div style="background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:14px;text-align:center">
+        <div class="stat-value text-gold" id="sv-rr" style="font-size:22px">1:2</div>
+        <div class="text-muted text-sm">Risk/Reward</div>
+      </div>
+      <div style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:14px;text-align:center">
+        <div class="stat-value" id="sv-trades" style="font-size:22px">0</div>
+        <div class="text-muted text-sm">Bitimlar</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;margin-bottom:14px;line-height:1.7;font-size:13.5px" id="sv-desc"></div>
+    <div class="lib-tags" id="sv-tags" style="margin-bottom:16px"></div>
+    <div style="background:rgba(0,212,170,0.05);border:1px solid rgba(0,212,170,0.15);border-radius:10px;padding:14px;margin-bottom:16px">
+      <div class="card-title" style="margin-bottom:10px">📊 Bu Strategiya Bilan Bitimlar</div>
+      <div id="sv-trades-list" class="text-muted text-sm">—</div>
+    </div>
+    <div class="flex-between">
+      <button class="btn btn-danger" onclick="deleteCurrentStrat()">🗑️ O'chirish</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline" onclick="editCurrentStrat()">✏️ Tahrirlash</button>
+        <button class="btn btn-outline" onclick="closeModal('stratViewModal')">Yopish</button>
+      </div>
     </div>
   </div>
 </div>
@@ -636,6 +758,9 @@
       <button class="nav-item" onclick="nav('strategies',this)">
         <span class="nav-icon">⚡</span> Strategiyalar
       </button>
+      <button class="nav-item" onclick="nav('goals',this)">
+        <span class="nav-icon">🎯</span> Maqsadlar
+      </button>
       <button class="nav-item" onclick="nav('analytics',this)">
         <span class="nav-icon">📊</span> Tahlil
       </button>
@@ -665,6 +790,7 @@
       </div>
       <div class="topbar-right">
         <div class="flex-center gap-8 text-sm text-muted" id="live-time"></div>
+        <button class="mode-toggle" onclick="toggleDarkMode()" title="Qorong'i/Oqarosh">🌙</button>
         <button class="topbar-btn" onclick="openModal('tradeModal')">➕ Bitim</button>
         <button class="topbar-btn primary" onclick="nav('journal',document.querySelector('[onclick*=journal]'))">📓 Jurnal</button>
       </div>
@@ -674,7 +800,13 @@
 
       <!-- ════ DASHBOARD ════ -->
       <div class="page active" id="page-dashboard">
-        <div class="grid-4">
+        <div class="grid-5">
+          <div class="card stat-card">
+            <div class="stat-glow" style="background:var(--blue)"></div>
+            <div class="stat-label">Joriy Balans</div>
+            <div class="stat-value" id="equity-val">$0.00</div>
+            <span class="stat-change up" id="equity-pct">▲ 0.00%</span>
+          </div>
           <div class="card stat-card">
             <div class="stat-glow" style="background:var(--green)"></div>
             <div class="stat-label">Umumiy Foyda</div>
@@ -682,7 +814,7 @@
             <span class="stat-change up" id="total-pct">▲ 0.00%</span>
           </div>
           <div class="card stat-card">
-            <div class="stat-glow" style="background:var(--blue)"></div>
+            <div class="stat-glow" style="background:var(--text-dim)"></div>
             <div class="stat-label">Jami Bitimlar</div>
             <div class="stat-value" id="total-trades">0</div>
             <span class="stat-change up" id="win-rate">Win: 0%</span>
@@ -771,7 +903,7 @@
 
       <!-- ════ JOURNAL ════ -->
       <div class="page" id="page-journal">
-        <div class="flex-between" style="margin-bottom:20px">
+        <div class="flex-between" style="margin-bottom:20px;gap:12px;flex-wrap:wrap">
           <div class="tabs" style="margin:0;border:none">
             <button class="tab active" onclick="switchTab('all',this)">Barchasi</button>
             <button class="tab" onclick="switchTab('buy',this)">Buy</button>
@@ -779,18 +911,21 @@
             <button class="tab" onclick="switchTab('win',this)">G'alaba</button>
             <button class="tab" onclick="switchTab('loss',this)">Zarar</button>
           </div>
-          <button class="btn btn-primary" onclick="openModal('tradeModal')">➕ Yangi Bitim</button>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input class="form-input" id="journal-search" placeholder="🔍 Juftlik bo'yicha qidirish..." style="width:220px" oninput="renderJournal()">
+            <button class="btn btn-primary" onclick="openModal('tradeModal')">➕ Yangi Bitim</button>
+          </div>
         </div>
 
         <div class="card">
           <table class="data-table">
             <thead>
               <tr>
-                <th>#</th><th>Juftlik</th><th>Yo'nalish</th><th>Kirish</th><th>Chiqish</th><th>Lot</th><th>P&L</th><th>Strategiya</th><th>Izoh</th><th>Sana</th><th></th>
+                <th>#</th><th>Juftlik</th><th>Yo'nalish</th><th>Kirish</th><th>Chiqish</th><th>Lot</th><th>P&L</th><th>Strategiya</th><th>Hissiyot</th><th>Izoh</th><th>Sana</th><th></th>
               </tr>
             </thead>
             <tbody id="journal-tbody">
-              <tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Hali bitim qo'shilmagan</td></tr>
+              <tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Hali bitim qo'shilmagan</td></tr>
             </tbody>
           </table>
         </div>
@@ -823,6 +958,8 @@
           <button class="tab" onclick="switchCalc('rr',this)">⚖️ Risk/Reward</button>
           <button class="tab" onclick="switchCalc('pip',this)">📐 Pip Qiymati</button>
           <button class="tab" onclick="switchCalc('margin',this)">💰 Margin</button>
+          <button class="tab" onclick="switchCalc('kelly',this)">🎯 Kelly Criterion</button>
+          <button class="tab" onclick="switchCalc('ev',this)">📊 Expected Value</button>
         </div>
 
         <!-- POS SIZE -->
@@ -964,55 +1101,267 @@
             </div>
           </div>
         </div>
+
+        <!-- KELLY -->
+        <div id="calc-kelly" style="display:none">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">⚙️ Ma'lumotlar</div>
+              <div class="form-group">
+                <label class="form-label">G'alaba Ehtimoli (%) — Win Rate</label>
+                <input class="form-input" id="kelly-wr" type="number" placeholder="55" min="0" max="100" oninput="calcKelly()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">O'rtacha Foyda ($)</label>
+                <input class="form-input" id="kelly-avgw" type="number" placeholder="100" oninput="calcKelly()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">O'rtacha Zarar ($)</label>
+                <input class="form-input" id="kelly-avgl" type="number" placeholder="100" oninput="calcKelly()">
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">📊 Natija</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div class="form-label">Optimal Lot (Kelly %)</div>
+                  <div class="calc-result pos" id="kelly-result">0.00%</div>
+                </div>
+                <div class="divider"></div>
+                <div class="card" style="background:rgba(0,212,170,0.05);border-color:rgba(0,212,170,0.2)">
+                  <div class="text-sm text-muted" style="line-height:1.6">
+                    💡 Kelly Formula: <br>
+                    f* = (bp - q) / b<br>
+                    b = Avg Win / Avg Loss<br>
+                    p = Win Rate<br>
+                    q = Loss Rate
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPECTED VALUE -->
+        <div id="calc-ev" style="display:none">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">⚙️ Ma'lumotlar</div>
+              <div class="form-group">
+                <label class="form-label">G'alaba Ehtimoli (%)</label>
+                <input class="form-input" id="ev-wr" type="number" placeholder="55" min="0" max="100" oninput="calcEV()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Orta Foyda ($ per bitim)</label>
+                <input class="form-input" id="ev-win" type="number" placeholder="120" oninput="calcEV()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Orta Zarar ($ per bitim)</label>
+                <input class="form-input" id="ev-loss" type="number" placeholder="100" oninput="calcEV()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Bir oyda bitim soni</label>
+                <input class="form-input" id="ev-count" type="number" placeholder="20" oninput="calcEV()">
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">📊 Oylik Kutilgan Qiymat</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div class="form-label">EV (bir bitim)</div>
+                  <div class="calc-result neu" id="ev-single">$0.00</div>
+                </div>
+                <div>
+                  <div class="form-label">Oylik EV</div>
+                  <div class="calc-result pos" id="ev-monthly">$0.00</div>
+                </div>
+                <div class="divider"></div>
+                <div class="text-sm" id="ev-status" style="color:var(--green)">✅ Ijobiy kutilgan qiymat</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ════ STRATEGIES ════ -->
       <div class="page" id="page-strategies">
         <div class="flex-between" style="margin-bottom:20px">
-          <div></div>
-          <button class="btn btn-primary" onclick="openAddStrategy()">➕ Strategiya Qo'shish</button>
+          <div class="tabs" style="margin:0;border:none">
+            <button class="tab active" onclick="filterStrat('all',this)">Barchasi</button>
+            <button class="tab" onclick="filterStrat('scalping',this)">Scalping</button>
+            <button class="tab" onclick="filterStrat('swing',this)">Swing</button>
+            <button class="tab" onclick="filterStrat('trend',this)">Trend</button>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('stratModal')">➕ Strategiya Qo'shish</button>
+        </div>
+        <div class="grid-3" id="strat-grid"></div>
+      </div>
+
+      <!-- ════ GOALS / MAQSADLAR ════ -->
+      <div class="page" id="page-goals">
+        <div class="grid-3" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-title">📅 Kunlik Maqsad ($)</div>
+            <div class="form-group mt-16" style="margin-bottom:10px">
+              <input class="form-input" id="g-daily" type="number" placeholder="100" oninput="saveGoals()">
+            </div>
+            <div class="flex-between text-sm mb-1">
+              <span class="text-muted" id="g-daily-cur">$0.00</span>
+              <span class="text-muted" id="g-daily-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="g-daily-bar" style="width:0%;background:var(--green)"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🗓️ Haftalik Maqsad ($)</div>
+            <div class="form-group mt-16" style="margin-bottom:10px">
+              <input class="form-input" id="g-weekly" type="number" placeholder="500" oninput="saveGoals()">
+            </div>
+            <div class="flex-between text-sm mb-1">
+              <span class="text-muted" id="g-weekly-cur">$0.00</span>
+              <span class="text-muted" id="g-weekly-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="g-weekly-bar" style="width:0%;background:var(--blue)"></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📆 Oylik Maqsad ($)</div>
+            <div class="form-group mt-16" style="margin-bottom:10px">
+              <input class="form-input" id="g-monthly" type="number" placeholder="2000" oninput="saveGoals()">
+            </div>
+            <div class="flex-between text-sm mb-1">
+              <span class="text-muted" id="g-monthly-cur">$0.00</span>
+              <span class="text-muted" id="g-monthly-pct">0%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" id="g-monthly-bar" style="width:0%;background:var(--gold)"></div></div>
+          </div>
         </div>
 
-        <div class="grid-3" id="strat-grid">
-          <!-- Default strategies -->
+        <div class="grid-2" style="margin-bottom:20px">
+          <div class="card">
+            <div class="card-title">🛡️ Kunlik Zarar Limiti</div>
+            <div class="form-group mt-16" style="margin-bottom:10px">
+              <input class="form-input" id="g-maxloss" type="number" placeholder="200" oninput="saveGoals()">
+            </div>
+            <div id="g-loss-status" class="card" style="background:rgba(0,212,170,0.06);border-color:rgba(0,212,170,0.2);margin-top:6px">
+              <div class="flex-between">
+                <span class="text-sm text-muted">Bugungi zarar</span>
+                <span class="fw-700" id="g-loss-cur">$0.00</span>
+              </div>
+              <div class="progress-bar mt-8"><div class="progress-fill" id="g-loss-bar" style="width:0%;background:var(--red)"></div></div>
+              <div class="text-sm mt-8" id="g-loss-msg" style="color:var(--green)">✅ Limit ichida — savdoni davom ettirsa bo'ladi</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🔥 Streak va Disiplina</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+              <div class="flex-between text-sm">
+                <span class="text-muted">Joriy g'alaba seriyasi</span>
+                <span class="fw-700 text-green" id="g-win-streak">0 kun</span>
+              </div>
+              <div class="flex-between text-sm">
+                <span class="text-muted">Eng uzun seriya</span>
+                <span class="fw-700 text-gold" id="g-best-streak">0 kun</span>
+              </div>
+              <div class="flex-between text-sm">
+                <span class="text-muted">Bugun bitimlar soni</span>
+                <span class="fw-700" id="g-today-count">0</span>
+              </div>
+              <div class="divider"></div>
+              <div class="text-sm text-muted" style="line-height:1.6">
+                💡 Maqsad va limitlar avtomatik saqlanadi. Limitdan oshib ketsangiz, tizim ogohlantirib turadi — bu hissiy/ortiqcha savdodan asraydi.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ════ ANALYTICS ════ -->
       <div class="page" id="page-analytics">
         <div class="grid-4" style="margin-bottom:20px">
-          <div class="card">
+          <div class="card stat-card">
+            <div class="stat-glow" style="background:var(--green)"></div>
             <div class="stat-label">Umumiy P&L</div>
-            <div class="stat-value text-green" id="an-pnl">$0.00</div>
+            <div class="stat-value" id="an-pnl">$0.00</div>
           </div>
-          <div class="card">
+          <div class="card stat-card">
+            <div class="stat-glow" style="background:var(--blue)"></div>
             <div class="stat-label">Win Rate</div>
             <div class="stat-value" id="an-wr">0%</div>
           </div>
-          <div class="card">
-            <div class="stat-label">Avg Win</div>
+          <div class="card stat-card">
+            <div class="stat-glow" style="background:var(--gold)"></div>
+            <div class="stat-label">O'rtacha Foyda</div>
             <div class="stat-value text-green" id="an-avgw">$0.00</div>
           </div>
-          <div class="card">
-            <div class="stat-label">Avg Loss</div>
+          <div class="card stat-card">
+            <div class="stat-glow" style="background:var(--red)"></div>
+            <div class="stat-label">O'rtacha Zarar</div>
             <div class="stat-value text-red" id="an-avgl">$0.00</div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-title">📈 P&L Grafigi (Barcha Bitimlar)</div>
-          <canvas id="analyticsChart" height="220"></canvas>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="flex-between" style="margin-bottom:16px">
+            <div class="card-title" style="margin:0">📈 Kumulyativ P&L Grafigi</div>
+            <div style="display:flex;gap:8px">
+              <button class="topbar-btn" onclick="setChartRange('week',this)" style="padding:5px 12px;font-size:11px">Hafta</button>
+              <button class="topbar-btn" onclick="setChartRange('month',this)" style="padding:5px 12px;font-size:11px">Oy</button>
+              <button class="topbar-btn" onclick="setChartRange('all',this)" style="padding:5px 12px;font-size:11px;background:rgba(0,212,170,0.15);color:var(--green);border-color:rgba(0,212,170,0.3)">Hammasi</button>
+            </div>
+          </div>
+          <canvas id="analyticsChart" height="200"></canvas>
         </div>
-        <div class="grid-2 section-gap">
+
+        <div class="grid-2" style="margin-bottom:20px">
           <div class="card">
-            <div class="card-title">🏆 Top Strategiyalar</div>
-            <div id="top-strats" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-              <div class="text-muted text-sm">Bitimlar qo'shingandan keyin ko'rinadi</div>
+            <div class="card-title">🏆 Strategiya Samaradorligi</div>
+            <div id="top-strats" style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+              <div class="text-muted text-sm">Bitimlar qo'shilgandan keyin ko'rinadi</div>
             </div>
           </div>
           <div class="card">
-            <div class="card-title">📅 Kunlik Tahlil</div>
-            <div id="daily-analysis" style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+            <div class="card-title">📅 Kunlik Natijalar</div>
+            <div id="daily-analysis" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
               <div class="text-muted text-sm">Ma'lumot yo'q</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">🧠 Psixologik Tahlil (Hissiyot bo'yicha)</div>
+          <div id="emotion-stats" class="grid-3" style="gap:10px;margin-top:10px">
+            <div class="text-muted text-sm">Bitimlarga hissiyot belgilangach ko'rinadi</div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-title">📊 Juftliklar Bo'yicha</div>
+            <div id="symbol-stats" style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+              <div class="text-muted text-sm">Ma'lumot yo'q</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📆 Hafta Kunlari</div>
+            <canvas id="weekdayChart" height="160"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-title">⚖️ Xavf Ko'rsatkichlari</div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px">
+              <div>
+                <div class="flex-between text-sm" style="margin-bottom:5px"><span class="text-muted">Profit Factor</span><span class="fw-700 text-green" id="an-pf">0.00</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="an-pf-bar" style="width:0%;background:var(--green)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm" style="margin-bottom:5px"><span class="text-muted">Sharpe (taxm.)</span><span class="fw-700 text-gold" id="an-sharpe">0.00</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="an-sharpe-bar" style="width:0%;background:var(--gold)"></div></div>
+              </div>
+              <div>
+                <div class="flex-between text-sm" style="margin-bottom:5px"><span class="text-muted">Max Drawdown</span><span class="fw-700 text-red" id="an-dd">$0.00</span></div>
+                <div class="progress-bar"><div class="progress-fill" id="an-dd-bar" style="width:0%;background:var(--red)"></div></div>
+              </div>
+              <div class="divider"></div>
+              <div class="flex-between text-sm"><span class="text-muted">Jami Bitimlar</span><span class="fw-700" id="an-total">0</span></div>
+              <div class="flex-between text-sm"><span class="text-muted">G'alaba / Zarar</span><span class="fw-700"><span class="text-green" id="an-wins">0</span> / <span class="text-red" id="an-losses">0</span></span></div>
             </div>
           </div>
         </div>
@@ -1057,6 +1406,44 @@
           </div>
         </div>
         <div class="card section-gap">
+          <div class="card-title">💾 JSON Backup / Restore</div>
+          <div class="flex-between mt-16">
+            <div>
+              <div class="fw-700">To'liq backup olish</div>
+              <div class="text-muted text-sm mt-4">Barcha bitimlar, strategiyalar, maqsadlar va sozlamalar</div>
+            </div>
+            <button class="btn btn-outline" onclick="exportJSONBackup()">⬇️ Backup (JSON)</button>
+          </div>
+          <div class="divider"></div>
+          <div class="flex-between">
+            <div>
+              <div class="fw-700">Backup fayldan qaytarish</div>
+              <div class="text-muted text-sm mt-4">Avvalgi ma'lumotlarni to'liq qaytaradi</div>
+            </div>
+            <button class="btn btn-outline" onclick="document.getElementById('backup-import').click()">⬆️ Restore (JSON)</button>
+            <input type="file" id="backup-import" accept=".json" style="display:none" onchange="importJSONBackup(this)">
+          </div>
+        </div>
+        <div class="card section-gap">
+          <div class="card-title">📤 Ma'lumotlarni Eksport / Import</div>
+          <div class="flex-between mt-16">
+            <div>
+              <div class="fw-700">Bitimlarni CSV formatida yuklab olish</div>
+              <div class="text-muted text-sm mt-4">Excel yoki Google Sheets'da ochish uchun</div>
+            </div>
+            <button class="btn btn-outline" onclick="exportTradesCSV()">⬇️ Eksport (CSV)</button>
+          </div>
+          <div class="divider"></div>
+          <div class="flex-between">
+            <div>
+              <div class="fw-700">CSV fayldan bitimlarni import qilish</div>
+              <div class="text-muted text-sm mt-4">symbol,dir,entry,exit,lot,pnl,strategy,note,date ustunlari kerak</div>
+            </div>
+            <button class="btn btn-outline" onclick="document.getElementById('csv-import-input').click()">⬆️ Import (CSV)</button>
+            <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="importTradesCSV(this)">
+          </div>
+        </div>
+        <div class="card section-gap">
           <div class="card-title text-red">⚠️ Xavfli Zona</div>
           <div class="flex-between mt-16">
             <div>
@@ -1078,26 +1465,53 @@ let trades = JSON.parse(localStorage.getItem('tp-trades') || '[]');
 let library = JSON.parse(localStorage.getItem('tp-library') || '[]');
 let settings = JSON.parse(localStorage.getItem('tp-settings') || '{"name":"Trader","balance":10000}');
 let strategies = JSON.parse(localStorage.getItem('tp-strategies') || JSON.stringify([
-  {name:"Trend Following",desc:"Trend yo'nalishida savdo qilish",win:68,rr:"1:2.5",trades:42,tags:["trend","EMA","MACD"]},
-  {name:"Support & Resistance",desc:"Qo'llab-quvvatlash va qarshilik darajalarida kirish",win:62,rr:"1:2",trades:28,tags:["S/R","reversal"]},
-  {name:"Breakout",desc:"Kanal yoki konsolidatsiyadan chiqish paytida savdo",win:55,rr:"1:3",trades:19,tags:["breakout","volatility"]}
+  {id:1001,name:"Trend Following",type:"trend",desc:"EMA va MACD yordamida trend yo'nalishida savdo. Kirish: EMA20 EMA50 ni kesib o'tganda. Chiqish: qarshi signal yoki TP.",win:68,rr:"1:2.5",trades:42,tags:["trend","EMA","MACD"]},
+  {id:1002,name:"Support & Resistance",type:"swing",desc:"Kuchli S/R darajalarida narx reaktsiyasidan foydalanish. Kirish: pin bar yoki engulfing mumkin'da.",win:62,rr:"1:2",trades:28,tags:["S/R","reversal","price action"]},
+  {id:1003,name:"Breakout",type:"breakout",desc:"Konsolidatsiya yoki kanal chegarasini yorib o'tganda kirish. Volume tasdiqlashi shart.",win:55,rr:"1:3",trades:19,tags:["breakout","volatility","volume"]}
 ]));
+let goals = JSON.parse(localStorage.getItem('tp-goals') || '{"daily":100,"weekly":500,"monthly":2000,"maxloss":200}');
 let libFiles = {};
 
 // ─── INIT ───
 document.addEventListener('DOMContentLoaded', async () => {
+  initMode();
   updateUser();
   updateLiveTime();
   setInterval(updateLiveTime, 1000);
   buildTicker();
   await openDB();
   await loadAllIDBCache();
+  updateStratSelect();
+  initGoalsInputs();
   renderDashboard();
   renderJournal();
   renderLibrary();
   renderStrategies();
   renderAnalytics();
+  setupKeyboardShortcuts();
 });
+
+// ─── KEYBOARD SHORTCUTS ───
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey || e.metaKey) {
+      if(e.key==='n') { e.preventDefault(); openModal('tradeModal'); } // Ctrl+N = New Trade
+      if(e.key==='s') { e.preventDefault(); saveTrade(); } // Ctrl+S = Save
+      if(e.key==='k') { e.preventDefault(); toggleDarkMode(); } // Ctrl+K = Dark/Light
+    }
+    if(e.key==='Escape') { closeModal('tradeModal'); closeModal('libModal'); closeModal('stratModal'); closeModal('viewModal'); closeModal('stratViewModal'); }
+  });
+}
+
+function updateStratSelect() {
+  const sel = document.getElementById('m-strat');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = strategies.map(s=>`<option value="${s.name}">${s.name}</option>`).join('') +
+    '<option value="Boshqa">Boshqa</option>';
+  if(cur) sel.value = cur;
+}
+
 
 function updateUser() {
   const n = settings.name || 'Trader';
@@ -1135,12 +1549,12 @@ function buildTicker() {
 // ─── NAV ───
 const pages = {
   'dashboard':'Dashboard','journal':'Kunlik Jurnal','library':'Kutubxona',
-  'calc':'Kalkulyator','strategies':'Strategiyalar','analytics':'Tahlil','settings':'Sozlamalar'
+  'calc':'Kalkulyator','strategies':'Strategiyalar','goals':'Maqsadlar','analytics':'Tahlil','settings':'Sozlamalar'
 };
 const subs = {
   'dashboard':'Bugungi holatingiz','journal':'Barcha bitimlaringiz',
   'library':'Bilim va materiallar','calc':'Trading vositalari',
-  'strategies':'Savdo strategiyalari','analytics':'Chuqur tahlil','settings':'Hisob sozlamalari'
+  'strategies':'Savdo strategiyalari','goals':'Maqsad va risk nazorati','analytics':'Chuqur tahlil','settings':'Hisob sozlamalari'
 };
 function nav(id, el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1149,7 +1563,10 @@ function nav(id, el) {
   el.classList.add('active');
   document.getElementById('top-title').textContent = pages[id];
   document.getElementById('top-sub').textContent = subs[id];
-  if(id==='analytics') renderAnalytics();
+  if(id==='analytics') { renderAnalytics(); setTimeout(()=>{drawAnalyticsChart();drawWeekdayChart();},80); }
+  if(id==='strategies') renderStrategies();
+  if(id==='goals') renderGoals();
+  if(id==='dashboard') { renderDashboard(); setTimeout(drawMainChart, 80); }
 }
 
 // ─── MODAL ───
@@ -1170,6 +1587,7 @@ function saveTrade() {
     lot: parseFloat(document.getElementById('m-lot').value)||0,
     pnl: parseFloat(document.getElementById('m-pnl').value)||0,
     strategy: document.getElementById('m-strat').value,
+    emotion: document.getElementById('m-emotion').value,
     note: document.getElementById('m-note').value,
     date: new Date().toLocaleDateString('uz-UZ')
   };
@@ -1177,9 +1595,12 @@ function saveTrade() {
   localStorage.setItem('tp-trades', JSON.stringify(trades));
   closeModal('tradeModal');
   ['m-symbol','m-entry','m-exit','m-lot','m-pnl','m-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('m-emotion').value = 'calm';
   renderDashboard();
   renderJournal();
   renderAnalytics();
+  renderGoals();
+  showToast('✅ Bitim saqlandi!', 'success');
 }
 
 function deleteTrade(id) {
@@ -1189,6 +1610,7 @@ function deleteTrade(id) {
   renderDashboard();
   renderJournal();
   renderAnalytics();
+  renderGoals();
 }
 
 // ─── RENDER DASHBOARD ───
@@ -1202,6 +1624,14 @@ function renderDashboard() {
   const grossW = wins.reduce((s,t)=>s+t.pnl,0);
   const grossL = Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
   const pf     = grossL ? (grossW/grossL) : 0;
+
+  const startBalance = settings.balance || 10000;
+  const equity = startBalance + total;
+  const equityPctChange = startBalance ? (total/startBalance*100) : 0;
+  document.getElementById('equity-val').textContent = '$'+equity.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  setEl('equity-pct', `${equityPctChange>=0?'▲':'▼'} ${Math.abs(equityPctChange).toFixed(2)}%`);
+  const equityChangeEl = document.getElementById('equity-pct');
+  if(equityChangeEl) equityChangeEl.className = 'stat-change '+(equityPctChange>=0?'up':'dn');
 
   setEl('total-pnl', fmt(total), total>=0?'text-green':'text-red');
   setEl('total-pct', `${total>=0?'▲':'▼'} ${wr}% Win`);
@@ -1255,18 +1685,28 @@ function switchTab(f,el) {
   el.classList.add('active');
   renderJournal();
 }
+const EMOTION_MAP = {
+  calm:{label:"Xotirjam",icon:"😌"}, confident:{label:"Ishonchli",icon:"💪"},
+  fomo:{label:"FOMO",icon:"⚡"}, fear:{label:"Qo'rquv",icon:"😟"},
+  greed:{label:"Ochko'zlik",icon:"🤑"}, revenge:{label:"Qasos",icon:"😤"}
+};
 function renderJournal() {
   let data = trades;
   if(journalFilter==='buy')  data = data.filter(t=>t.dir==='BUY');
   if(journalFilter==='sell') data = data.filter(t=>t.dir==='SELL');
   if(journalFilter==='win')  data = data.filter(t=>t.pnl>0);
   if(journalFilter==='loss') data = data.filter(t=>t.pnl<0);
+  const searchEl = document.getElementById('journal-search');
+  const q = searchEl ? searchEl.value.trim().toUpperCase() : '';
+  if(q) data = data.filter(t=>t.symbol.includes(q));
   const tbody = document.getElementById('journal-tbody');
   if(!data.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--text-muted)">📭 Ma\'lumot yo\'q</td></tr>';
     return;
   }
-  tbody.innerHTML = data.map((t,i)=>`
+  tbody.innerHTML = data.map((t,i)=>{
+    const em = EMOTION_MAP[t.emotion] || null;
+    return `
     <tr>
       <td class="text-muted">${i+1}</td>
       <td class="mono">${t.symbol}</td>
@@ -1276,10 +1716,11 @@ function renderJournal() {
       <td class="mono">${t.lot}</td>
       <td class="${t.pnl>=0?'profit':'loss'}">${fmt(t.pnl)}</td>
       <td class="text-muted text-sm">${t.strategy}</td>
+      <td class="text-sm">${em ? em.icon+' '+em.label : '<span class="text-muted">—</span>'}</td>
       <td class="text-muted text-sm" style="max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="${t.note}">${t.note||'—'}</td>
       <td class="text-muted text-sm">${t.date}</td>
       <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="deleteTrade(${t.id})">🗑️</button></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 
 // ─── LIBRARY ───
@@ -1476,46 +1917,298 @@ function deleteCurrentLib() {
 }
 
 // ─── STRATEGIES ───
-function renderStrategies() {
-  const grid = document.getElementById('strat-grid');
-  grid.innerHTML = strategies.map(s=>`
-    <div class="strategy-card">
-      <div class="strategy-head">
-        <div>
-          <div class="strategy-name">${s.name}</div>
-          <div class="text-muted text-sm mt-4">${s.desc}</div>
-        </div>
-        <div class="strategy-rating">
-          ${[1,2,3,4,5].map(i=>`<span class="star">${i<=Math.round(s.win/20)?'★':'☆'}</span>`).join('')}
-        </div>
-      </div>
-      <div class="strategy-stats">
-        <div class="st-stat">
-          <div class="st-val text-green">${s.win}%</div>
-          <div class="st-lbl">Win Rate</div>
-        </div>
-        <div class="st-stat">
-          <div class="st-val text-gold">${s.rr}</div>
-          <div class="st-lbl">R/R</div>
-        </div>
-        <div class="st-stat">
-          <div class="st-val">${s.trades}</div>
-          <div class="st-lbl">Bitimlar</div>
-        </div>
-      </div>
-      <div class="lib-tags mt-8">${(s.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('')}</div>
-    </div>`).join('');
-}
-function openAddStrategy() {
-  const name = prompt('Strategiya nomi:');
-  if(!name) return;
-  const desc = prompt('Tavsif:');
-  strategies.push({name, desc, win:50, rr:'1:2', trades:0, tags:[]});
-  localStorage.setItem('tp-strategies', JSON.stringify(strategies));
+let stratFilter = 'all';
+let currentStratId = null;
+let editStratId = null;
+
+function filterStrat(f, el) {
+  stratFilter = f;
+  document.querySelectorAll('#page-strategies .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
   renderStrategies();
 }
 
+function renderStrategies() {
+  const grid = document.getElementById('strat-grid');
+  let data = strategies;
+  if(stratFilter !== 'all') data = data.filter(s => s.type === stratFilter);
+  if(!data.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-muted)">⚡ Strategiya qo'shilmagan.<br><br><button class="btn btn-primary" onclick="openModal('stratModal')">➕ Birinchi Strategiyani Qo'shish</button></div>`;
+    return;
+  }
+  grid.innerHTML = data.map(s => {
+    const stars = [1,2,3,4,5].map(i=>`<span style="color:${i<=Math.round(s.win/20)?'var(--gold)':'rgba(255,255,255,0.15)'}">${i<=Math.round(s.win/20)?'★':'☆'}</span>`).join('');
+    const relTrades = trades.filter(t=>t.strategy===s.name);
+    const relWins = relTrades.filter(t=>t.pnl>0).length;
+    const realWR = relTrades.length ? Math.round(relWins/relTrades.length*100) : null;
+    const typeColors = {trend:'var(--green)',scalping:'var(--red)',swing:'var(--blue)',reversal:'var(--gold)',breakout:'#A78BFA'};
+    const typeColor = typeColors[s.type] || 'var(--text-muted)';
+    return `<div class="strategy-card" onclick="openStratView(${s.id})" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <span style="font-size:10px;font-weight:700;color:${typeColor};text-transform:uppercase;letter-spacing:.8px;background:rgba(255,255,255,0.05);padding:2px 8px;border-radius:20px">${s.type||'strategy'}</span>
+          <div class="strategy-name" style="margin-top:8px">${s.name}</div>
+          <div class="text-muted text-sm" style="margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${s.desc||'—'}</div>
+        </div>
+        <div style="font-size:14px;letter-spacing:1px">${stars}</div>
+      </div>
+      <div class="strategy-stats">
+        <div class="st-stat">
+          <div class="st-val text-green">${realWR !== null ? realWR+'%' : s.win+'%'}</div>
+          <div class="st-lbl">${realWR !== null ? 'Real WR' : 'WR (taxm.)'}</div>
+        </div>
+        <div class="st-stat">
+          <div class="st-val text-gold">${s.rr||'1:2'}</div>
+          <div class="st-lbl">R/R</div>
+        </div>
+        <div class="st-stat">
+          <div class="st-val">${relTrades.length || s.trades || 0}</div>
+          <div class="st-lbl">Bitimlar</div>
+        </div>
+      </div>
+      <div class="lib-tags" style="margin-top:10px">${(s.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function saveStrategy() {
+  const name = document.getElementById('st-name').value.trim();
+  if(!name) return alert('Nom kiriting!');
+  const strat = {
+    id: editStratId || Date.now(),
+    name,
+    type: document.getElementById('st-type').value,
+    rr: document.getElementById('st-rr').value || '1:2',
+    win: parseInt(document.getElementById('st-win').value) || 50,
+    desc: document.getElementById('st-desc').value,
+    tags: document.getElementById('st-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    trades: 0
+  };
+  if(editStratId) {
+    const idx = strategies.findIndex(s=>s.id===editStratId);
+    if(idx>-1) strategies[idx] = {...strategies[idx], ...strat};
+    editStratId = null;
+  } else {
+    strategies.push(strat);
+  }
+  localStorage.setItem('tp-strategies', JSON.stringify(strategies));
+  closeModal('stratModal');
+  ['st-name','st-rr','st-win','st-desc','st-tags'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('strat-modal-title').textContent = '⚡ Yangi Strategiya';
+  updateStratSelect();
+  renderStrategies();
+}
+
+function openStratView(id) {
+  const s = strategies.find(s=>s.id===id);
+  if(!s) return;
+  currentStratId = id;
+  document.getElementById('sv-name').textContent = s.name;
+  document.getElementById('sv-win').textContent = s.win+'%';
+  document.getElementById('sv-rr').textContent = s.rr||'1:2';
+  document.getElementById('sv-desc').textContent = s.desc||'Tavsif yo\'q';
+  document.getElementById('sv-tags').innerHTML = (s.tags||[]).map(t=>`<span class="lib-tag">${t}</span>`).join('');
+  const relTrades = trades.filter(t=>t.strategy===s.name);
+  document.getElementById('sv-trades').textContent = relTrades.length;
+  if(relTrades.length) {
+    const pnl = relTrades.reduce((sum,t)=>sum+t.pnl,0);
+    const wr = Math.round(relTrades.filter(t=>t.pnl>0).length/relTrades.length*100);
+    document.getElementById('sv-trades-list').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <div style="text-align:center"><div class="${pnl>=0?'text-green':'text-red'} fw-700">${fmt(pnl)}</div><div>Jami P&L</div></div>
+        <div style="text-align:center"><div class="text-green fw-700">${wr}%</div><div>Real Win Rate</div></div>
+        <div style="text-align:center"><div class="fw-700">${relTrades.length}</div><div>Bitim</div></div>
+      </div>
+      ${relTrades.slice(0,4).map(t=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)"><span>${t.symbol} <span class="badge ${t.dir==='BUY'?'buy':'sell'}" style="font-size:10px">${t.dir}</span></span><span class="${t.pnl>=0?'profit':'loss'}">${fmt(t.pnl)}</span></div>`).join('')}
+      ${relTrades.length>4?`<div class="text-muted text-sm" style="margin-top:6px">+${relTrades.length-4} ta boshqa bitim</div>`:''}`;
+  } else {
+    document.getElementById('sv-trades-list').innerHTML = '<span class="text-muted">Bu strategiya bilan hali bitim yo\'q</span>';
+  }
+  openModal('stratViewModal');
+}
+
+function deleteCurrentStrat() {
+  if(!confirm('Bu strategiyani o\'chirasizmi?')) return;
+  strategies = strategies.filter(s=>s.id!==currentStratId);
+  localStorage.setItem('tp-strategies', JSON.stringify(strategies));
+  closeModal('stratViewModal');
+  renderStrategies();
+}
+
+function editCurrentStrat() {
+  const s = strategies.find(s=>s.id===currentStratId);
+  if(!s) return;
+  closeModal('stratViewModal');
+  editStratId = s.id;
+  document.getElementById('strat-modal-title').textContent = '✏️ Strategiyani Tahrirlash';
+  document.getElementById('st-name').value = s.name;
+  document.getElementById('st-type').value = s.type || 'trend';
+  document.getElementById('st-rr').value = s.rr || '';
+  document.getElementById('st-win').value = s.win || '';
+  document.getElementById('st-desc').value = s.desc || '';
+  document.getElementById('st-tags').value = (s.tags||[]).join(', ');
+  openModal('stratModal');
+}
+
+// ─── GOALS / MAQSADLAR ───
+function initGoalsInputs() {
+  document.getElementById('g-daily').value = goals.daily || '';
+  document.getElementById('g-weekly').value = goals.weekly || '';
+  document.getElementById('g-monthly').value = goals.monthly || '';
+  document.getElementById('g-maxloss').value = goals.maxloss || '';
+}
+function saveGoals() {
+  goals = {
+    daily: parseFloat(document.getElementById('g-daily').value)||0,
+    weekly: parseFloat(document.getElementById('g-weekly').value)||0,
+    monthly: parseFloat(document.getElementById('g-monthly').value)||0,
+    maxloss: parseFloat(document.getElementById('g-maxloss').value)||0
+  };
+  localStorage.setItem('tp-goals', JSON.stringify(goals));
+  renderGoals();
+}
+function parseTradeDate(t) {
+  const p = (t.date||'').split('.');
+  return p.length===3 ? new Date(p[2], p[1]-1, p[0]) : null;
+}
+function renderGoals() {
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('uz-UZ');
+  const startOfWeek = new Date(now); startOfWeek.setDate(now.getDate()-((now.getDay()+6)%7)); startOfWeek.setHours(0,0,0,0);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  let dailyPnl=0, weeklyPnl=0, monthlyPnl=0, todayCount=0;
+  trades.forEach(t=>{
+    const d = parseTradeDate(t);
+    if(!d) return;
+    if(t.date===todayStr) { dailyPnl+=t.pnl; todayCount++; }
+    if(d>=startOfWeek) weeklyPnl+=t.pnl;
+    if(d>=startOfMonth) monthlyPnl+=t.pnl;
+  });
+
+  setGoalBar('daily', dailyPnl, goals.daily);
+  setGoalBar('weekly', weeklyPnl, goals.weekly);
+  setGoalBar('monthly', monthlyPnl, goals.monthly);
+  setEl('g-today-count', todayCount);
+
+  // Daily loss limit
+  const todayLoss = Math.abs(Math.min(dailyPnl,0));
+  const maxloss = goals.maxloss||0;
+  const lossPct = maxloss ? Math.min(todayLoss/maxloss*100,100) : 0;
+  setEl('g-loss-cur', fmt(-todayLoss));
+  const lossBar = document.getElementById('g-loss-bar');
+  if(lossBar) lossBar.style.width = lossPct+'%';
+  const statusBox = document.getElementById('g-loss-status');
+  const msgEl = document.getElementById('g-loss-msg');
+  if(maxloss && todayLoss>=maxloss) {
+    statusBox.style.background='rgba(255,71,87,0.08)'; statusBox.style.borderColor='rgba(255,71,87,0.3)';
+    msgEl.style.color='var(--red)'; msgEl.textContent="⛔ Kunlik zarar limitiga yetdingiz — bugun savdoni to'xtatish tavsiya etiladi";
+  } else if(maxloss && todayLoss>=maxloss*0.7) {
+    statusBox.style.background='rgba(201,168,76,0.08)'; statusBox.style.borderColor='rgba(201,168,76,0.3)';
+    msgEl.style.color='var(--gold)'; msgEl.textContent="⚠️ Limitga yaqinlashyapsiz — ehtiyot bo'ling";
+  } else {
+    statusBox.style.background='rgba(0,212,170,0.06)'; statusBox.style.borderColor='rgba(0,212,170,0.2)';
+    msgEl.style.color='var(--green)'; msgEl.textContent="✅ Limit ichida — savdoni davom ettirsa bo'ladi";
+  }
+
+  // Win streak (consecutive days with positive net pnl)
+  const dayMap = {};
+  trades.forEach(t=>{ const d=parseTradeDate(t); if(!d) return; const key=d.toDateString(); dayMap[key]=(dayMap[key]||0)+t.pnl; });
+  const sortedDays = Object.keys(dayMap).map(k=>({key:k,date:new Date(k),pnl:dayMap[k]})).sort((a,b)=>a.date-b.date);
+  let cur=0, best=0;
+  sortedDays.forEach(d=>{ if(d.pnl>0){ cur++; if(cur>best)best=cur; } else { cur=0; } });
+  // current streak must end at the most recent trading day being positive
+  let liveCur=0;
+  for(let i=sortedDays.length-1;i>=0;i--){ if(sortedDays[i].pnl>0) liveCur++; else break; }
+  setEl('g-win-streak', liveCur+' kun');
+  setEl('g-best-streak', best+' kun');
+}
+function setGoalBar(prefix, current, target) {
+  const pct = target ? Math.max(Math.min(current/target*100,100),0) : 0;
+  setEl('g-'+prefix+'-cur', fmt(current));
+  setEl('g-'+prefix+'-pct', Math.round(pct)+'%');
+  const bar = document.getElementById('g-'+prefix+'-bar');
+  if(bar) bar.style.width = pct+'%';
+}
+
+// ─── CSV EXPORT / IMPORT ───
+function exportTradesCSV() {
+  if(!trades.length) return alert("Bitimlar yo'q — eksport qilish uchun avval bitim qo'shing");
+  const headers = ['symbol','dir','entry','exit','lot','pnl','strategy','emotion','note','date'];
+  const rows = trades.map(t => headers.map(h => {
+    let v = t[h]==null ? '' : String(t[h]).replace(/"/g,'""');
+    return `"${v}"`;
+  }).join(','));
+  const csv = headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `traderpro-bitimlar-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('✅ CSV eksport qilindi!', 'success');
+}
+function importTradesCSV(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const lines = e.target.result.split(/\r?\n/).filter(l=>l.trim().length);
+      const headers = parseCSVLine(lines[0]);
+      let added = 0;
+      for(let i=1;i<lines.length;i++) {
+        const cols = parseCSVLine(lines[i]);
+        if(cols.length < headers.length) continue;
+        const obj = {};
+        headers.forEach((h,idx)=>obj[h.trim()]=cols[idx]);
+        trades.unshift({
+          id: Date.now()+i,
+          symbol: (obj.symbol||'').toUpperCase(),
+          dir: obj.dir==='SELL'?'SELL':'BUY',
+          entry: parseFloat(obj.entry)||0,
+          exit: parseFloat(obj.exit)||0,
+          lot: parseFloat(obj.lot)||0,
+          pnl: parseFloat(obj.pnl)||0,
+          strategy: obj.strategy||'Boshqa',
+          emotion: obj.emotion||'calm',
+          note: obj.note||'',
+          date: obj.date || new Date().toLocaleDateString('uz-UZ')
+        });
+        added++;
+      }
+      localStorage.setItem('tp-trades', JSON.stringify(trades));
+      renderDashboard(); renderJournal(); renderAnalytics(); renderGoals();
+      showToast(`✅ ${added} ta bitim import qilindi!`, 'success');
+    } catch(err) {
+      showToast("❌ Faylni o'qishda xatolik. CSV formatini tekshiring.", 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+function parseCSVLine(line) {
+  const result = []; let cur=''; let inQuotes=false;
+  for(let i=0;i<line.length;i++) {
+    const c = line[i];
+    if(c==='"') { if(inQuotes && line[i+1]==='"'){cur+='"';i++;} else inQuotes=!inQuotes; }
+    else if(c===',' && !inQuotes) { result.push(cur); cur=''; }
+    else cur+=c;
+  }
+  result.push(cur);
+  return result;
+}
+
 // ─── ANALYTICS ───
+let chartRange = 'all';
+function setChartRange(r, el) {
+  chartRange = r;
+  document.querySelectorAll('#page-analytics .topbar-btn').forEach(b=>{
+    b.style.background='rgba(255,255,255,0.06)'; b.style.color='var(--text-dim)'; b.style.borderColor='var(--border)';
+  });
+  el.style.background='rgba(0,212,170,0.15)'; el.style.color='var(--green)'; el.style.borderColor='rgba(0,212,170,0.3)';
+  drawAnalyticsChart();
+}
+
 function renderAnalytics() {
   const total = trades.reduce((s,t)=>s+t.pnl,0);
   const wins  = trades.filter(t=>t.pnl>0);
@@ -1523,26 +2216,113 @@ function renderAnalytics() {
   const wr    = trades.length ? Math.round(wins.length/trades.length*100) : 0;
   const avgW  = wins.length  ? wins.reduce((s,t)=>s+t.pnl,0)/wins.length : 0;
   const avgL  = loss.length  ? loss.reduce((s,t)=>s+t.pnl,0)/loss.length : 0;
-  setEl('an-pnl', fmt(total), total>=0?'text-green':'text-red');
+  const grossW = wins.reduce((s,t)=>s+t.pnl,0);
+  const grossL = Math.abs(loss.reduce((s,t)=>s+t.pnl,0));
+  const pf = grossL ? grossW/grossL : 0;
+
+  // Drawdown
+  let peak=0, maxDD=0, running=0;
+  [...trades].reverse().forEach(t=>{running+=t.pnl; if(running>peak)peak=running; const dd=peak-running; if(dd>maxDD)maxDD=dd;});
+
+  // Simple Sharpe approx
+  const returns = trades.map(t=>t.pnl);
+  const meanR = returns.length ? returns.reduce((a,b)=>a+b,0)/returns.length : 0;
+  const stdR = returns.length>1 ? Math.sqrt(returns.reduce((s,v)=>s+(v-meanR)**2,0)/returns.length) : 1;
+  const sharpe = stdR ? (meanR/stdR).toFixed(2) : '0.00';
+
+  const pnlEl = document.getElementById('an-pnl');
+  if(pnlEl) { pnlEl.textContent = fmt(total); pnlEl.className = 'stat-value '+(total>=0?'text-green':'text-red'); }
   setEl('an-wr', wr+'%');
   setEl('an-avgw', fmt(avgW));
   setEl('an-avgl', fmt(avgL));
+  setEl('an-pf', pf.toFixed(2));
+  setEl('an-sharpe', sharpe);
+  setEl('an-dd', fmt(-maxDD));
+  setEl('an-total', trades.length);
+  setEl('an-wins', wins.length);
+  setEl('an-losses', loss.length);
+  const pfPct = Math.min(pf/4*100,100);
+  const shPct = Math.min(Math.max(parseFloat(sharpe)/3*100,0),100);
+  const ddPct = total ? Math.min(maxDD/Math.abs(total)*100,100) : 0;
+  const pfBar = document.getElementById('an-pf-bar');
+  const shBar = document.getElementById('an-sharpe-bar');
+  const ddBar = document.getElementById('an-dd-bar');
+  if(pfBar) pfBar.style.width = pfPct+'%';
+  if(shBar) shBar.style.width = shPct+'%';
+  if(ddBar) ddBar.style.width = ddPct+'%';
 
   // Top strategies
   const stratMap = {};
-  trades.forEach(t=>{ if(!stratMap[t.strategy]) stratMap[t.strategy]={wins:0,total:0,pnl:0}; stratMap[t.strategy].total++; if(t.pnl>0) stratMap[t.strategy].wins++; stratMap[t.strategy].pnl+=t.pnl; });
-  const el = document.getElementById('top-strats');
+  trades.forEach(t=>{
+    if(!stratMap[t.strategy]) stratMap[t.strategy]={wins:0,total:0,pnl:0};
+    stratMap[t.strategy].total++;
+    if(t.pnl>0) stratMap[t.strategy].wins++;
+    stratMap[t.strategy].pnl+=t.pnl;
+  });
+  const stratEl = document.getElementById('top-strats');
   const keys = Object.keys(stratMap).sort((a,b)=>stratMap[b].pnl-stratMap[a].pnl);
-  el.innerHTML = keys.length ? keys.slice(0,5).map(k=>`
-    <div class="flex-between">
-      <div class="text-sm">${k}</div>
-      <div class="flex-center gap-8">
-        <span class="text-sm text-muted">${stratMap[k].total} ta</span>
-        <span class="${stratMap[k].pnl>=0?'profit':'loss'} text-sm">${fmt(stratMap[k].pnl)}</span>
+  if(stratEl) stratEl.innerHTML = keys.length ? keys.slice(0,6).map(k=>{
+    const wr2 = Math.round(stratMap[k].wins/stratMap[k].total*100);
+    const pnl2 = stratMap[k].pnl;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">${k}</div>
+        <div class="text-muted text-sm">${stratMap[k].total} bitim · ${wr2}% win</div>
       </div>
+      <span class="${pnl2>=0?'profit':'loss'}">${fmt(pnl2)}</span>
+    </div>`;
+  }).join('') : '<div class="text-muted text-sm">Bitim qo\'shilgandan keyin ko\'rinadi</div>';
+
+  // Daily analysis
+  const dayMap = {};
+  trades.forEach(t=>{ if(!dayMap[t.date]) dayMap[t.date]={pnl:0,count:0}; dayMap[t.date].pnl+=t.pnl; dayMap[t.date].count++; });
+  const dailyEl = document.getElementById('daily-analysis');
+  const days = Object.keys(dayMap).sort().reverse();
+  if(dailyEl) dailyEl.innerHTML = days.length ? days.slice(0,6).map(d=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${d}</div>
+        <div class="text-muted text-sm">${dayMap[d].count} bitim</div>
+      </div>
+      <span class="${dayMap[d].pnl>=0?'profit':'loss'}">${fmt(dayMap[d].pnl)}</span>
     </div>`).join('') : '<div class="text-muted text-sm">Ma\'lumot yo\'q</div>';
 
+  // Symbol stats
+  const symMap = {};
+  trades.forEach(t=>{ if(!symMap[t.symbol]) symMap[t.symbol]={wins:0,total:0,pnl:0}; symMap[t.symbol].total++; if(t.pnl>0)symMap[t.symbol].wins++; symMap[t.symbol].pnl+=t.pnl; });
+  const symEl = document.getElementById('symbol-stats');
+  const syms = Object.keys(symMap).sort((a,b)=>symMap[b].pnl-symMap[a].pnl);
+  if(symEl) symEl.innerHTML = syms.length ? syms.slice(0,6).map(s=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-family:var(--mono);font-weight:600">${s}</span>
+        <span class="text-muted text-sm" style="margin-left:8px">${symMap[s].total} ta</span>
+      </div>
+      <span class="${symMap[s].pnl>=0?'profit':'loss'}">${fmt(symMap[s].pnl)}</span>
+    </div>`).join('') : '<div class="text-muted text-sm">Ma\'lumot yo\'q</div>';
+
+  // Emotion / psychology stats
+  const emoMap = {};
+  trades.forEach(t=>{
+    if(!t.emotion) return;
+    if(!emoMap[t.emotion]) emoMap[t.emotion]={wins:0,total:0,pnl:0};
+    emoMap[t.emotion].total++;
+    if(t.pnl>0) emoMap[t.emotion].wins++;
+    emoMap[t.emotion].pnl+=t.pnl;
+  });
+  const emoEl = document.getElementById('emotion-stats');
+  const emoKeys = Object.keys(emoMap).sort((a,b)=>emoMap[b].pnl-emoMap[a].pnl);
+  if(emoEl) emoEl.innerHTML = emoKeys.length ? emoKeys.map(k=>{
+    const info = EMOTION_MAP[k] || {label:k,icon:'•'};
+    const wr3 = Math.round(emoMap[k].wins/emoMap[k].total*100);
+    return `<div class="st-stat" style="text-align:left;padding:12px">
+      <div class="flex-between"><span style="font-size:13px;font-weight:600">${info.icon} ${info.label}</span><span class="${emoMap[k].pnl>=0?'profit':'loss'}" style="font-size:13px">${fmt(emoMap[k].pnl)}</span></div>
+      <div class="text-muted text-sm mt-4">${emoMap[k].total} bitim · ${wr3}% win</div>
+    </div>`;
+  }).join('') : '<div class="text-muted text-sm">Bitimlarga hissiyot belgilangach ko\'rinadi</div>';
+
   drawAnalyticsChart();
+  drawWeekdayChart();
 }
 
 // ─── CHARTS ───
@@ -1594,42 +2374,140 @@ function drawAnalyticsChart() {
   const canvas = document.getElementById('analyticsChart');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth, H = 220;
+  const W = canvas.offsetWidth || 600, H = 220;
   canvas.width = W*2; canvas.height = H*2; canvas.style.width=W+'px'; canvas.style.height=H+'px';
   ctx.scale(2,2);
   ctx.clearRect(0,0,W,H);
-  if(!trades.length) return;
+
+  // Filter by range
+  let filtered = [...trades].reverse();
+  if(chartRange === 'week') {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-7);
+    filtered = filtered.filter(t => { const p=t.date.split('.'); return p.length===3 && new Date(p[2],p[1]-1,p[0])>=cutoff; });
+  } else if(chartRange === 'month') {
+    const cutoff = new Date(); cutoff.setMonth(cutoff.getMonth()-1);
+    filtered = filtered.filter(t => { const p=t.date.split('.'); return p.length===3 && new Date(p[2],p[1]-1,p[0])>=cutoff; });
+  }
 
   let cum = [0];
-  [...trades].reverse().forEach(t=>cum.push(cum[cum.length-1]+t.pnl));
-  const maxV = Math.max(...cum,1), minV = Math.min(...cum,-1), range = maxV-minV||1;
-  const px = i=>i/(cum.length-1)*W, py = v=>H-25-(v-minV)/range*(H-40);
+  filtered.forEach(t=>cum.push(cum[cum.length-1]+t.pnl));
+  if(cum.length<2) {
+    ctx.fillStyle='rgba(255,255,255,0.06)'; ctx.fillRect(0,H/2-1,W,2);
+    ctx.fillStyle='var(--text-muted)'; ctx.font='13px Inter'; ctx.textAlign='center';
+    ctx.fillText(filtered.length===0?'Bu davrda bitim yo\'q':'—', W/2, H/2+5);
+    return;
+  }
 
+  const maxV = Math.max(...cum,1), minV = Math.min(...cum,-1), range = maxV-minV||1;
+  const px = i=>i/(cum.length-1)*(W-20)+10, py = v=>H-25-(v-minV)/range*(H-40);
+
+  // Grid lines
   ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
   for(let i=0;i<6;i++){const y=10+i*(H-30)/5;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // Zero line
+  if(minV<0 && maxV>0) {
+    const zy = py(0);
+    ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(0,zy); ctx.lineTo(W,zy); ctx.stroke();
+    ctx.setLineDash([]);
+  }
 
-  const grad = ctx.createLinearGradient(0,0,0,H);
   const last = cum[cum.length-1];
-  if(last>=0){grad.addColorStop(0,'rgba(0,212,170,0.2)');grad.addColorStop(1,'rgba(0,212,170,0)');}
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  if(last>=0){grad.addColorStop(0,'rgba(0,212,170,0.25)');grad.addColorStop(1,'rgba(0,212,170,0)');}
   else{grad.addColorStop(0,'rgba(255,71,87,0.2)');grad.addColorStop(1,'rgba(255,71,87,0)');}
+
   ctx.beginPath(); ctx.moveTo(px(0),py(cum[0]));
   cum.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
-  ctx.lineTo(px(cum.length-1),H);ctx.lineTo(0,H);ctx.closePath();
+  ctx.lineTo(px(cum.length-1),H);ctx.lineTo(px(0),H);ctx.closePath();
   ctx.fillStyle=grad;ctx.fill();
 
   ctx.beginPath();ctx.moveTo(px(0),py(cum[0]));
   cum.forEach((v,i)=>{if(i>0)ctx.lineTo(px(i),py(v));});
-  ctx.strokeStyle=last>=0?'#00D4AA':'#FF4757';ctx.lineWidth=2;ctx.stroke();
+  ctx.strokeStyle=last>=0?'#00D4AA':'#FF4757';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+
+  // Last point dot
+  const lx=px(cum.length-1), ly=py(last);
+  ctx.beginPath();ctx.arc(lx,ly,4,0,Math.PI*2);
+  ctx.fillStyle=last>=0?'#00D4AA':'#FF4757';ctx.fill();
+}
+
+function drawWeekdayChart() {
+  const canvas = document.getElementById('weekdayChart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth, H = 160;
+  canvas.width = W*2; canvas.height = H*2; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.scale(2,2);
+  ctx.clearRect(0,0,W,H);
+  const days = ['Du','Se','Ch','Pa','Ju','Sha','Ya'];
+  const dayPnl = [0,0,0,0,0,0,0];
+  trades.forEach(t => {
+    const parts = t.date.split('.');
+    if(parts.length===3) {
+      const d = new Date(parts[2], parts[1]-1, parts[0]);
+      const dow = (d.getDay()+6)%7;
+      dayPnl[dow] += t.pnl;
+    }
+  });
+  const maxAbs = Math.max(...dayPnl.map(Math.abs), 1);
+  const bW = (W - 20) / 7;
+  const midY = H * 0.6;
+  const scale = (midY - 10) / maxAbs;
+  // Zero line
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, midY); ctx.lineTo(W, midY); ctx.stroke();
+  days.forEach((label, i) => {
+    const x = 10 + i * bW + bW * 0.1;
+    const bw = bW * 0.8;
+    const v = dayPnl[i];
+    const barH = Math.abs(v) * scale;
+    const y = v >= 0 ? midY - barH : midY;
+    const color = v >= 0 ? 'rgba(0,212,170,0.7)' : 'rgba(255,71,87,0.7)';
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, v>=0?y:midY, bw, barH, 3) : ctx.rect(x, v>=0?y:midY, bw, barH);
+    ctx.fill();
+    ctx.fillStyle = v >= 0 ? '#00D4AA' : '#FF4757';
+    ctx.font = `${10*2}px Inter`; ctx.textAlign = 'center'; ctx.scale(0.5,0.5);
+    ctx.fillText(label, (x + bw/2)*2, (H-4)*2);
+    ctx.scale(2,1);
+  });
 }
 
 // ─── CALCULATORS ───
 function switchCalc(id, el) {
-  ['pos','rr','pip','margin'].forEach(c=>{
+  ['pos','rr','pip','margin','kelly','ev'].forEach(c=>{
     const el2 = document.getElementById('calc-'+c);
     if(el2) el2.style.display = c===id ? 'block' : 'none';
   });
   document.querySelectorAll('#page-calc .tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
+}
+
+// ─── TOAST NOTIFICATIONS ───
+function showToast(msg, type='info') {
+  const toast = document.createElement('div');
+  toast.className = 'toast '+type;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
+}
+
+// ─── DARK MODE ───
+function toggleDarkMode() {
+  document.body.classList.toggle('light-mode');
+  localStorage.setItem('tp-mode', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+  updateModeIcon();
+}
+function updateModeIcon() {
+  const btn = document.querySelector('.mode-toggle');
+  if(btn) btn.textContent = document.body.classList.contains('light-mode') ? '☀️' : '🌙';
+}
+function initMode() {
+  const mode = localStorage.getItem('tp-mode')||'dark';
+  if(mode==='light') document.body.classList.add('light-mode');
+  updateModeIcon();
 }
 
 function calcPos() {
@@ -1668,12 +2546,82 @@ function calcMargin() {
   document.getElementById('mg-result').textContent = fmt(lot*100000*price/lev);
 }
 
+function calcKelly() {
+  const wr = parseFloat(document.getElementById('kelly-wr').value)||0;
+  const avgW = parseFloat(document.getElementById('kelly-avgw').value)||0;
+  const avgL = parseFloat(document.getElementById('kelly-avgl').value)||0;
+  if(avgL===0 || wr<=0 || wr>100) { document.getElementById('kelly-result').textContent = '0%'; return; }
+  const p = wr/100; const q = 1-p; const b = avgW/avgL;
+  const f = (b*p - q) / b;
+  const fOptimal = Math.max(0, Math.min(f, 0.25)); // cap at 25% max
+  document.getElementById('kelly-result').textContent = (fOptimal*100).toFixed(2)+'%';
+}
+
+function calcEV() {
+  const wr = parseFloat(document.getElementById('ev-wr').value)||0;
+  const win = parseFloat(document.getElementById('ev-win').value)||0;
+  const loss = parseFloat(document.getElementById('ev-loss').value)||0;
+  const count = parseFloat(document.getElementById('ev-count').value)||1;
+  const p = wr/100; const q = 1-p;
+  const ev = p*win - q*loss;
+  const monthlyEv = ev * count;
+  document.getElementById('ev-single').textContent = fmt(ev);
+  document.getElementById('ev-monthly').textContent = fmt(monthlyEv);
+  const statusEl = document.getElementById('ev-status');
+  if(ev>0) { statusEl.style.color='var(--green)'; statusEl.textContent='✅ Ijobiy kutilgan qiymat'; }
+  else if(ev<0) { statusEl.style.color='var(--red)'; statusEl.textContent='❌ Salbiy kutilgan qiymat'; }
+  else { statusEl.style.color='var(--text-muted)'; statusEl.textContent='— Break-even'; }
+}
+
+// ─── JSON BACKUP ───
+function exportJSONBackup() {
+  const backup = {
+    trades, library, strategies, goals, settings,
+    exported: new Date().toLocaleString('uz-UZ')
+  };
+  const json = JSON.stringify(backup, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `traderpro-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  showToast('✅ Backup muvaffaqiyatli saqlandi!', 'success');
+}
+function importJSONBackup(input) {
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const backup = JSON.parse(e.target.result);
+      trades = backup.trades || [];
+      library = backup.library || [];
+      strategies = backup.strategies || [];
+      goals = backup.goals || {};
+      settings = backup.settings || {name:'Trader',balance:10000};
+      localStorage.setItem('tp-trades', JSON.stringify(trades));
+      localStorage.setItem('tp-library', JSON.stringify(library));
+      localStorage.setItem('tp-strategies', JSON.stringify(strategies));
+      localStorage.setItem('tp-goals', JSON.stringify(goals));
+      localStorage.setItem('tp-settings', JSON.stringify(settings));
+      updateUser(); updateStratSelect(); initGoalsInputs();
+      renderDashboard(); renderJournal(); renderLibrary(); renderStrategies(); renderAnalytics(); renderGoals();
+      showToast('✅ Backup muvaffaqiyatli qaytarildi!', 'success');
+    } catch(err) {
+      showToast('❌ JSON faylda xatolik', 'error');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
 // ─── SETTINGS ───
 function saveSettings() {
   settings.name    = document.getElementById('s-name').value;
   settings.balance = parseFloat(document.getElementById('s-balance').value)||10000;
   localStorage.setItem('tp-settings', JSON.stringify(settings));
   updateUser();
+  renderDashboard();
   alert('✅ Saqlandi!');
 }
 
@@ -1691,8 +2639,8 @@ function fmt(n) {
 }
 
 // resize charts on load
-window.addEventListener('resize', ()=>{ drawMainChart(); drawAnalyticsChart(); });
-setTimeout(()=>{ drawMainChart(); drawAnalyticsChart(); },100);
+window.addEventListener('resize', ()=>{ drawMainChart(); drawAnalyticsChart(); drawWeekdayChart(); });
+setTimeout(()=>{ drawMainChart(); }, 150);
 </script>
 </body>
 </html>
